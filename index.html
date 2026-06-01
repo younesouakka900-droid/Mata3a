@@ -496,6 +496,9 @@ function boot(cfg) {
     sbClient = window.supabase.createClient(cfg.url, cfg.key);
   } catch(e) { showNotif('❌ خطأ في Supabase'); return; }
 
+  // Restore login state across refresh
+  if (sessionStorage.getItem('m3_logged') === '1') isLoggedIn = true;
+
   // Apply site settings
   if (cfg.siteName) applyName(cfg.siteName);
   if (cfg.siteDesc) document.getElementById('heroDesc').textContent = cfg.siteDesc;
@@ -646,7 +649,9 @@ function doLogin() {
   const cfg = getCfg();
   const pass = document.getElementById('loginPass').value;
   if (cfg && pass === cfg.pass) {
-    isLoggedIn=true; closeLogin(); openDashboard();
+    isLoggedIn=true;
+    sessionStorage.setItem('m3_logged','1');
+    closeLogin(); openDashboard();
     showNotif('✦ مرحباً بك');
   } else {
     document.getElementById('loginErr').textContent='كلمة المرور غير صحيحة';
@@ -666,7 +671,9 @@ function closeDashboard() {
 function goHome() { closeDashboard(); }
 
 function doLogout() {
-  isLoggedIn=false; closeDashboard();
+  isLoggedIn=false;
+  sessionStorage.removeItem('m3_logged');
+  closeDashboard();
   showNotif('تم تسجيل الخروج');
 }
 
@@ -730,7 +737,7 @@ async function handleUpload(files) {
   }
 
   setTimeout(()=>progList.innerHTML='',3000);
-  renderGrid(); updateStats();
+  await loadMedia();
   showNotif(`✦ تم رفع ${files.length} ملف`);
 }
 
@@ -745,7 +752,8 @@ async function deleteItem(id) {
     const {error}=await sbClient.from('media').delete().eq('id',id);
     if(error) throw error;
     mediaItems=mediaItems.filter(m=>m.id!==id);
-    renderDashGrid(); renderGrid(); updateStats();
+    await loadMedia();
+    renderDashGrid();
     showNotif('🗑 تم الحذف');
   } catch(e){ showNotif('❌ '+e.message); }
 }
