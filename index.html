@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>متعة | Mata3a</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --gold: #C9A84C; --gold-light: #E8C97A; --gold-pale: #F5E6B8;
+  --dark: #0A0A0A; --dark-2: #111111; --dark-3: #1A1A1A; --dark-4: #222222;
+  --white: #FAFAF5; --gray: #888; --radius: 12px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--dark); color:var(--white); font-family:'Cairo',sans-serif; overflow-x:hidden; min-height:100vh; }
+::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:var(--dark)} ::-webkit-scrollbar-thumb{background:var(--gold);border-radius:2px}
+
+/* FIRST RUN OVERLAY */
+#firstRun {
+  position:fixed;inset:0;z-index:99999;background:var(--dark);
+  display:flex;align-items:center;justify-content:center;padding:20px;
+}
+#firstRun.gone{display:none}
+.fr-box {
+  background:var(--dark-2);border:1px solid rgba(201,168,76,0.3);
+  border-radius:20px;padding:40px;width:min(520px,95vw);
+  box-shadow:0 40px 100px rgba(0,0,0,0.6);
+}
+.fr-logo{font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--gold),var(--gold-light));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px;letter-spacing:2px}
+.fr-sub{font-size:0.85rem;color:var(--gray);margin-bottom:28px}
+.fr-note{background:rgba(201,168,76,0.07);border:1px solid rgba(201,168,76,0.2);border-radius:10px;padding:14px 18px;font-size:0.8rem;color:var(--gold-pale);line-height:1.9;margin-bottom:24px;direction:ltr;text-align:left}
+.fr-note strong{color:var(--gold-light)} .fr-note code{background:rgba(255,255,255,0.07);padding:2px 6px;border-radius:4px}
+.fg{margin-bottom:16px}
+.fg label{display:block;font-size:0.75rem;font-weight:700;color:var(--gray);letter-spacing:1px;text-transform:uppercase;margin-bottom:7px;direction:ltr;text-align:left}
+.fg input,.fg textarea{width:100%;background:var(--dark-4);border:1px solid rgba(255,255,255,0.06);color:var(--white);padding:11px 15px;border-radius:10px;font-family:'Cairo',sans-serif;font-size:0.9rem;outline:none;transition:border-color .2s;direction:ltr}
+.fg input:focus,.fg textarea:focus{border-color:rgba(201,168,76,0.5)}
+.btn-gold{width:100%;background:linear-gradient(135deg,var(--gold),var(--gold-light));color:var(--dark);border:none;padding:13px;border-radius:10px;font-family:'Cairo',sans-serif;font-weight:900;font-size:1rem;cursor:pointer;transition:all .2s;margin-top:4px}
+.btn-gold:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(201,168,76,0.4)}
+.err-msg{color:#FF6B6B;font-size:0.8rem;margin-top:10px;text-align:center;direction:ltr;min-height:18px}
+
+/* LOADER */
+#loader{position:fixed;inset:0;background:var(--dark);z-index:9998;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px}
+#loader.gone{display:none}
+.ll{font-size:3rem;font-weight:900;color:var(--gold);letter-spacing:4px;animation:pulse .8s ease infinite alternate}
+.lbar{width:200px;height:2px;background:var(--dark-4);border-radius:2px;overflow:hidden}
+.lbar-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-light));animation:loadBar 1.4s ease forwards}
+@keyframes loadBar{from{width:0}to{width:100%}}
+@keyframes pulse{from{opacity:.5}to{opacity:1}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* HEADER */
+header{position:sticky;top:0;z-index:100;background:rgba(10,10,10,0.92);backdrop-filter:blur(20px);border-bottom:1px solid rgba(201,168,76,0.15);padding:0 40px;height:70px;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:12px;text-decoration:none;cursor:pointer}
+.logo-icon{width:40px;height:40px;background:linear-gradient(135deg,var(--gold),var(--gold-light));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.2rem}
+.logo-text{font-size:1.6rem;font-weight:900;background:linear-gradient(135deg,var(--gold),var(--gold-light));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:2px}
+.logo-sub{font-size:.6rem;color:var(--gray);letter-spacing:3px;text-transform:uppercase;display:block;margin-top:-4px}
+nav{display:flex;align-items:center;gap:8px}
+nav a{color:var(--gray);text-decoration:none;padding:8px 16px;border-radius:8px;font-size:.9rem;font-weight:600;transition:all .2s;cursor:pointer}
+nav a:hover,nav a.active{color:var(--white);background:var(--dark-4)}
+nav a.active{color:var(--gold)}
+.hactions{display:flex;align-items:center;gap:12px}
+.btn-lang{background:var(--dark-4);color:var(--gray);border:none;padding:8px 14px;border-radius:8px;font-family:'Cairo',sans-serif;font-size:.85rem;cursor:pointer;transition:all .2s}
+.btn-lang:hover{color:var(--gold)}
+.btn-admin{background:linear-gradient(135deg,var(--gold),var(--gold-light));color:var(--dark);border:none;padding:8px 18px;border-radius:8px;font-family:'Cairo',sans-serif;font-weight:700;font-size:.85rem;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px;text-decoration:none}
+.btn-admin:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(201,168,76,.4)}
+
+/* HERO */
+.hero{position:relative;min-height:520px;display:flex;align-items:center;justify-content:center;text-align:center;padding:80px 40px;overflow:hidden}
+.hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 50% 0%,rgba(201,168,76,.12) 0%,transparent 70%),radial-gradient(ellipse 40% 40% at 80% 80%,rgba(201,168,76,.06) 0%,transparent 60%)}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(201,168,76,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(201,168,76,.04) 1px,transparent 1px);background-size:60px 60px;mask-image:radial-gradient(ellipse 80% 60% at 50% 50%,black 0%,transparent 100%)}
+.hero-content{position:relative;z-index:1;max-width:700px}
+.hero-tag{display:inline-flex;align-items:center;gap:8px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);color:var(--gold-light);padding:6px 16px;border-radius:100px;font-size:.8rem;font-weight:600;letter-spacing:2px;margin-bottom:24px;animation:fadeUp .6s ease .1s both}
+.hero-title{font-size:clamp(2.8rem,6vw,5rem);font-weight:900;line-height:1.1;margin-bottom:16px;animation:fadeUp .6s ease .2s both}
+.hero-title span{background:linear-gradient(135deg,var(--gold),var(--gold-light),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-style:italic;font-family:'Playfair Display',serif}
+.hero-desc{font-size:1.1rem;color:var(--gray);max-width:480px;margin:0 auto 32px;line-height:1.7;font-weight:300;animation:fadeUp .6s ease .3s both}
+.hero-stats{display:flex;justify-content:center;gap:40px;animation:fadeUp .6s ease .4s both}
+.stat{text-align:center} .stat-num{font-size:1.8rem;font-weight:900;color:var(--gold);display:block} .stat-label{font-size:.75rem;color:var(--gray);letter-spacing:1px}
+
+/* FILTERS */
+.filters-bar{padding:0 40px 30px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px solid rgba(255,255,255,.05);margin-bottom:40px}
+.filter-btn{background:var(--dark-3);color:var(--gray);border:1px solid rgba(255,255,255,.06);padding:8px 18px;border-radius:100px;font-family:'Cairo',sans-serif;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px}
+.filter-btn:hover{border-color:rgba(201,168,76,.4);color:var(--white)}
+.filter-btn.active{background:rgba(201,168,76,.12);border-color:rgba(201,168,76,.5);color:var(--gold-light)}
+.fdivider{width:1px;height:24px;background:rgba(255,255,255,.08);margin:0 6px}
+.search-box{margin-right:auto;display:flex;align-items:center;gap:8px;background:var(--dark-3);border:1px solid rgba(255,255,255,.06);padding:8px 16px;border-radius:100px;transition:border-color .2s}
+.search-box:focus-within{border-color:rgba(201,168,76,.4)}
+.search-box input{background:none;border:none;outline:none;color:var(--white);font-family:'Cairo',sans-serif;font-size:.85rem;width:160px}
+.search-box input::placeholder{color:var(--gray)}
+
+/* GRID */
+.grid-container{padding:0 40px 60px;columns:4 280px;column-gap:16px}
+.card{break-inside:avoid;margin-bottom:16px;border-radius:var(--radius);overflow:hidden;background:var(--dark-3);border:1px solid rgba(255,255,255,.04);cursor:pointer;transition:transform .25s ease,box-shadow .25s ease;position:relative}
+.card:hover{transform:translateY(-4px);box-shadow:0 20px 60px rgba(0,0,0,.5),0 0 0 1px rgba(201,168,76,.2);z-index:10}
+.card-media{width:100%;display:block;object-fit:cover}
+.card-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.85) 0%,transparent 50%);opacity:0;transition:opacity .25s;display:flex;flex-direction:column;justify-content:flex-end;padding:16px}
+.card:hover .card-overlay{opacity:1}
+.card-type-badge{position:absolute;top:12px;right:12px;background:rgba(0,0,0,.7);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.1);color:var(--white);padding:4px 10px;border-radius:6px;font-size:.7rem;font-weight:700;letter-spacing:1px}
+.card-type-badge.gif{color:#00E5FF;border-color:rgba(0,229,255,.3)}
+.card-type-badge.video{color:#FF6B6B;border-color:rgba(255,107,107,.3)}
+.card-type-badge.img{color:var(--gold);border-color:rgba(201,168,76,.3)}
+.card-actions{display:flex;gap:8px;margin-bottom:8px}
+.card-btn{background:rgba(255,255,255,.12);backdrop-filter:blur(10px);border:none;color:var(--white);width:34px;height:34px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.9rem;transition:background .2s}
+.card-btn:hover{background:rgba(201,168,76,.3)}
+.card-title-overlay{font-size:.85rem;font-weight:600;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.play-icon{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:48px;height:48px;background:rgba(255,255,255,.15);backdrop-filter:blur(10px);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.2rem;opacity:0;transition:opacity .25s;pointer-events:none}
+.card:hover .play-icon{opacity:1}
+
+/* LIGHTBOX */
+#lightbox{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.95);backdrop-filter:blur(20px);display:none;align-items:center;justify-content:center;padding:20px}
+#lightbox.open{display:flex}
+.lb-close{position:absolute;top:20px;left:20px;background:rgba(255,255,255,.1);border:none;color:var(--white);width:40px;height:40px;border-radius:10px;cursor:pointer;font-size:1.2rem;display:flex;align-items:center;justify-content:center;transition:background .2s}
+.lb-close:hover{background:rgba(255,107,107,.3)}
+#lightboxContent img,#lightboxContent video{max-width:min(90vw,1000px);max-height:85vh;object-fit:contain;border-radius:var(--radius);box-shadow:0 40px 120px rgba(0,0,0,.8)}
+
+/* LOGIN MODAL */
+#loginModal{position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.96);backdrop-filter:blur(30px);display:none;align-items:center;justify-content:center}
+#loginModal.open{display:flex}
+.login-box{background:var(--dark-2);border:1px solid rgba(201,168,76,.2);border-radius:20px;padding:40px;width:min(440px,90vw);position:relative;box-shadow:0 40px 100px rgba(0,0,0,.6)}
+.login-box h2{font-size:1.5rem;font-weight:900;margin-bottom:6px;color:var(--gold)}
+.login-box>p{font-size:.85rem;color:var(--gray);margin-bottom:28px}
+.modal-x{position:absolute;top:16px;left:16px;background:rgba(255,255,255,.06);border:none;color:var(--gray);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center}
+
+/* DASHBOARD */
+#dashboard{position:fixed;inset:0;z-index:3000;background:var(--dark);overflow-y:auto;display:none}
+#dashboard.open{display:block}
+.dash-header{position:sticky;top:0;background:rgba(10,10,10,.95);backdrop-filter:blur(20px);border-bottom:1px solid rgba(201,168,76,.15);padding:20px 40px;display:flex;align-items:center;justify-content:space-between;z-index:10}
+.dash-header h1{font-size:1.3rem;font-weight:900;color:var(--gold)}
+.dash-tabs{display:flex;gap:4px;background:var(--dark-3);padding:4px;border-radius:10px;margin-top:12px}
+.dash-tab{padding:8px 20px;border-radius:7px;border:none;background:none;color:var(--gray);font-family:'Cairo',sans-serif;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s}
+.dash-tab.active{background:var(--dark-4);color:var(--gold)}
+.dash-body{padding:32px 40px;max-width:1100px}
+.dash-section{margin-bottom:36px}
+.dash-section h3{font-size:.8rem;font-weight:700;color:var(--gray);letter-spacing:2px;text-transform:uppercase;margin-bottom:16px}
+
+/* UPLOAD ZONE */
+.upload-zone{border:2px dashed rgba(201,168,76,.3);border-radius:16px;padding:48px;text-align:center;cursor:pointer;transition:all .25s}
+.upload-zone:hover{border-color:var(--gold);background:rgba(201,168,76,.04)}
+.upload-zone input{display:none}
+.uz-icon{font-size:2.5rem;margin-bottom:12px}
+.upload-zone h4{font-size:1rem;font-weight:700;margin-bottom:6px}
+.upload-zone p{font-size:.85rem;color:var(--gray);margin-bottom:16px}
+.fmt-tags{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+.fmt-tag{background:var(--dark-3);border:1px solid rgba(255,255,255,.08);color:var(--gray);padding:4px 10px;border-radius:6px;font-size:.72rem;font-weight:700;letter-spacing:1px}
+
+/* PROGRESS */
+.prog-list{margin-top:16px}
+.prog-item{margin-bottom:10px}
+.prog-label{font-size:.78rem;color:var(--gray);margin-bottom:4px;display:flex;justify-content:space-between}
+.prog-bg{height:4px;background:var(--dark-4);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-light));border-radius:2px;transition:width .3s ease}
+
+/* MANAGE GRID */
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.mcard{background:var(--dark-3);border:1px solid rgba(255,255,255,.05);border-radius:10px;overflow:hidden}
+.mcard img,.mcard video{width:100%;height:110px;object-fit:cover;display:block}
+.mcard-foot{padding:8px 10px;display:flex;align-items:center;justify-content:space-between}
+.mcard-name{font-size:.72rem;color:var(--gray);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px}
+.mcard-del{background:none;border:none;color:rgba(255,100,100,.5);cursor:pointer;font-size:.9rem;transition:color .2s;padding:3px}
+.mcard-del:hover{color:#FF6B6B}
+
+/* SETTINGS PANEL */
+.settings-panel{max-width:560px}
+.settings-group{background:var(--dark-3);border:1px solid rgba(255,255,255,.05);border-radius:14px;padding:24px;margin-bottom:20px}
+.settings-group h4{font-size:.85rem;font-weight:700;color:var(--gold-light);margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.setting-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.setting-row:last-child{border-bottom:none;padding-bottom:0}
+.setting-row label{font-size:.85rem;color:var(--white)}
+.setting-row small{font-size:.75rem;color:var(--gray);display:block;margin-top:2px}
+.setting-input{background:var(--dark-4);border:1px solid rgba(255,255,255,.06);color:var(--white);padding:8px 12px;border-radius:8px;font-family:'Cairo',sans-serif;font-size:.85rem;outline:none;width:220px;transition:border-color .2s;direction:ltr}
+.setting-input:focus{border-color:rgba(201,168,76,.5)}
+.btn-save-setting{background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);color:var(--gold-light);padding:8px 20px;border-radius:8px;font-family:'Cairo',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;transition:all .2s;margin-top:14px}
+.btn-save-setting:hover{background:rgba(201,168,76,.25)}
+
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
+.stat-card{background:var(--dark-3);border:1px solid rgba(255,255,255,.05);border-radius:12px;padding:20px;text-align:center}
+.stat-card .num{font-size:2rem;font-weight:900;color:var(--gold)}
+.stat-card .lbl{font-size:.75rem;color:var(--gray)}
+
+/* FOOTER */
+footer{border-top:1px solid rgba(255,255,255,.05);padding:30px 40px;display:flex;align-items:center;justify-content:space-between;color:var(--gray);font-size:.8rem}
+
+/* NOTIF */
+.notif{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--dark-2);border:1px solid rgba(201,168,76,.4);color:var(--gold-light);padding:12px 24px;border-radius:100px;font-size:.9rem;font-weight:600;z-index:9999;display:none;animation:fadeUp .3s ease;white-space:nowrap}
+
+/* EMPTY */
+.empty{text-align:center;padding:80px 40px;color:var(--gray)}
+.empty-icon{font-size:3rem;margin-bottom:16px;opacity:.3}
+.empty h3{font-size:1.2rem;font-weight:700;margin-bottom:8px;opacity:.5}
+.empty p{font-size:.9rem;opacity:.4}
+
+/* SPINNER */
+.spin-wrap{display:flex;align-items:center;justify-content:center;padding:80px;gap:12px;color:var(--gray);font-size:.9rem}
+.spinner{width:20px;height:20px;border:2px solid rgba(201,168,76,.3);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite}
+
+/* BTN SECONDARY */
+.btn-sec{background:rgba(255,255,255,.06);border:none;color:var(--gray);padding:10px 20px;border-radius:10px;font-family:'Cairo',sans-serif;font-size:.9rem;cursor:pointer;transition:all .2s}
+.btn-sec:hover{color:var(--white);background:rgba(255,255,255,.1)}
+.btn-danger{background:rgba(255,100,100,.1);border:1px solid rgba(255,100,100,.2);color:#FF6B6B;padding:9px 18px;border-radius:8px;font-family:'Cairo',sans-serif;font-size:.85rem;cursor:pointer;transition:all .2s}
+.btn-danger:hover{background:rgba(255,100,100,.2)}
+
+@media(max-width:768px){
+  header{padding:0 20px} nav{display:none}
+  .grid-container{padding:0 16px 60px} .filters-bar{padding:0 16px 24px}
+  .hero{padding:60px 20px} .hero-stats{gap:24px}
+  footer{flex-direction:column;gap:12px;text-align:center}
+  .dash-body{padding:20px} .dash-header{padding:16px 20px}
+  .stats-row{grid-template-columns:1fr 1fr}
+  .settings-panel{max-width:100%} .setting-input{width:160px}
+}
+</style>
+</head>
+<body>
+
+<!-- FIRST RUN (للمطور فقط، مرة واحدة) -->
+<div id="firstRun" class="gone" style="display:none!important">
+  <div class="fr-box">
+    <div class="fr-logo">متعة ✦</div>
+    <div class="fr-sub">الإعداد الأولي — يظهر مرة واحدة فقط</div>
+    <div class="fr-note">
+      <strong>قبل البدء:</strong><br>
+      1. اذهب إلى <strong>supabase.com</strong> → أنشئ مشروعاً مجانياً<br>
+      2. في <strong>SQL Editor</strong> نفّذ:<br>
+      <code>create table if not exists media (id uuid default gen_random_uuid() primary key, name text not null, type text not null, url text not null, created_at timestamptz default now());</code><br>
+      3. في <strong>Storage</strong> → Buckets → تحقق من اسم الـ Bucket<br>
+      4. من <strong>Project Settings → API</strong> انسخ URL و anon key
+    </div>
+    <div class="fg">
+      <label>Supabase Project URL</label>
+      <input type="text" id="frUrl" placeholder="https://xxxxxxxxxxxx.supabase.co">
+    </div>
+    <div class="fg">
+      <label>Supabase Anon Key</label>
+      <input type="text" id="frKey" placeholder="eyJhbGci...">
+    </div>
+    <div class="fg">
+      <label>Storage Bucket Name</label>
+      <input type="text" id="frBucket" placeholder="media-content" value="media-content">
+    </div>
+    <div class="fg">
+      <label>Admin Password (كلمة مرور لوحة التحكم)</label>
+      <input type="password" id="frPass" placeholder="اختر كلمة مرور قوية">
+    </div>
+    <button class="btn-gold" onclick="doFirstRun()">حفظ والبدء ←</button>
+    <div class="err-msg" id="frErr"></div>
+  </div>
+</div>
+
+<!-- LOADER -->
+<div id="loader" class="gone">
+  <div class="ll">متعة</div>
+  <div class="lbar"><div class="lbar-fill"></div></div>
+</div>
+
+<!-- NOTIF -->
+<div class="notif" id="notif"></div>
+
+<!-- HEADER -->
+<header>
+  <a class="logo" onclick="goHome()">
+    <div class="logo-icon">✦</div>
+    <div><div class="logo-text">متعة</div><span class="logo-sub">Mata3a</span></div>
+  </a>
+  <nav>
+    <a class="active" data-filter="all" onclick="setFilter('all',this)">الكل</a>
+    <a data-filter="img" onclick="setFilter('img',this)">صور</a>
+    <a data-filter="gif" onclick="setFilter('gif',this)">GIF</a>
+    <a data-filter="video" onclick="setFilter('video',this)">فيديو</a>
+  </nav>
+  <div class="hactions">
+    <button class="btn-lang" onclick="toggleLang()">EN / AR</button>
+    <a class="btn-admin" onclick="openAdminFlow(event)">
+      <span>⬡</span><span id="adminBtnText">لوحة التحكم</span>
+    </a>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div><div class="hero-grid"></div>
+  <div class="hero-content">
+    <div class="hero-tag">✦ &nbsp; منصة المحتوى الإبداعي</div>
+    <h1 class="hero-title">مرحباً في <span>متعة</span></h1>
+    <p class="hero-desc" id="heroDesc">اكتشف مجموعة مختارة من أجمل الصور والمقاطع المبهجة — كل ما يمنحك متعة حقيقية</p>
+    <div class="hero-stats">
+      <div class="stat"><span class="stat-num" id="statTotal">0</span><span class="stat-label">محتوى</span></div>
+      <div class="stat"><span class="stat-num" id="statImgs">0</span><span class="stat-label">صورة</span></div>
+      <div class="stat"><span class="stat-num" id="statVids">0</span><span class="stat-label">فيديو / GIF</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- FILTERS -->
+<div class="filters-bar">
+  <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">🗂 الكل</button>
+  <button class="filter-btn" data-filter="img" onclick="setFilter('img',this)">🖼 صور</button>
+  <button class="filter-btn" data-filter="gif" onclick="setFilter('gif',this)">✨ GIF</button>
+  <button class="filter-btn" data-filter="video" onclick="setFilter('video',this)">🎬 فيديو</button>
+  <div class="fdivider"></div>
+  <div class="search-box">
+    <span>🔍</span>
+    <input type="text" placeholder="بحث..." oninput="searchMedia(this.value)" id="searchInput">
+  </div>
+</div>
+
+<!-- GRID -->
+<div class="grid-container" id="mediaGrid">
+  <div class="spin-wrap" style="column-span:all"><div class="spinner"></div> جاري التحميل...</div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div>© 2024 منصة <strong style="color:var(--gold)">متعة</strong> — جميع الحقوق محفوظة</div>
+  <div style="direction:ltr">Mata3a Platform · All Rights Reserved</div>
+</footer>
+
+<!-- LIGHTBOX -->
+<div id="lightbox" onclick="closeLightbox()">
+  <button class="lb-close" onclick="closeLightbox()">✕</button>
+  <div id="lightboxContent"></div>
+</div>
+
+<!-- LOGIN MODAL -->
+<div id="loginModal">
+  <div class="login-box">
+    <button class="modal-x" onclick="closeLogin()">✕</button>
+    <h2>🔐 تسجيل الدخول</h2>
+    <p>لوحة تحكم المدير — متعة</p>
+    <div class="fg">
+      <label>كلمة المرور</label>
+      <input type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn-gold" onclick="doLogin()">دخول ←</button>
+    <div class="err-msg" id="loginErr"></div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+  <div class="dash-header">
+    <div>
+      <h1>✦ لوحة التحكم — متعة</h1>
+      <div class="dash-tabs">
+        <button class="dash-tab active" onclick="switchTab('upload',this)">📤 رفع محتوى</button>
+        <button class="dash-tab" onclick="switchTab('manage',this)">🗂 إدارة المحتوى</button>
+        <button class="dash-tab" onclick="switchTab('settings',this)">⚙️ الإعدادات</button>
+      </div>
+    </div>
+    <button class="btn-sec" onclick="closeDashboard()">← خروج</button>
+  </div>
+
+  <div class="dash-body">
+
+    <!-- TAB: UPLOAD -->
+    <div id="tabUpload">
+      <div class="dash-section">
+        <h3>إحصائيات</h3>
+        <div class="stats-row">
+          <div class="stat-card"><div class="num" id="dTotal">0</div><div class="lbl">إجمالي</div></div>
+          <div class="stat-card"><div class="num" id="dImgs">0</div><div class="lbl">صور</div></div>
+          <div class="stat-card"><div class="num" id="dVids">0</div><div class="lbl">فيديو + GIF</div></div>
+        </div>
+      </div>
+      <div class="dash-section">
+        <h3>رفع محتوى جديد</h3>
+        <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+          <div class="uz-icon">⬆️</div>
+          <h4>اسحب وأفلت أو انقر للرفع</h4>
+          <p>يتم الرفع مباشرة إلى Supabase Storage</p>
+          <input type="file" id="fileInput" multiple accept="image/*,video/mp4,video/webm,video/ogg" onchange="handleUpload(this.files)">
+          <div class="fmt-tags">
+            <span class="fmt-tag">JPG</span><span class="fmt-tag">PNG</span><span class="fmt-tag">WEBP</span>
+            <span class="fmt-tag">GIF</span><span class="fmt-tag">MP4</span><span class="fmt-tag">WEBM</span>
+          </div>
+        </div>
+        <div class="prog-list" id="progList"></div>
+      </div>
+    </div>
+
+    <!-- TAB: MANAGE -->
+    <div id="tabManage" style="display:none">
+      <div class="dash-section">
+        <h3>المحتوى المرفوع</h3>
+        <div class="mgrid" id="dashGrid">
+          <p style="color:var(--gray);font-size:.85rem;">جاري التحميل...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: SETTINGS -->
+    <div id="tabSettings" style="display:none">
+      <div class="settings-panel">
+
+        <div class="settings-group">
+          <h4>🔑 تغيير كلمة المرور</h4>
+          <div class="setting-row">
+            <div><label>كلمة المرور الجديدة</label><small>ستُحفظ فوراً</small></div>
+            <input type="password" class="setting-input" id="newPass" placeholder="••••••••">
+          </div>
+          <div class="setting-row">
+            <div><label>تأكيد كلمة المرور</label></div>
+            <input type="password" class="setting-input" id="confirmPass" placeholder="••••••••">
+          </div>
+          <button class="btn-save-setting" onclick="changePass()">حفظ كلمة المرور</button>
+        </div>
+
+        <div class="settings-group">
+          <h4>🗄️ إعدادات Supabase</h4>
+          <div class="setting-row">
+            <div><label>Project URL</label><small>رابط مشروعك</small></div>
+            <input type="text" class="setting-input" id="setUrl" placeholder="https://...">
+          </div>
+          <div class="setting-row">
+            <div><label>Anon Key</label><small>مفتاح API العام</small></div>
+            <input type="text" class="setting-input" id="setKey" placeholder="eyJ...">
+          </div>
+          <div class="setting-row">
+            <div><label>Bucket Name</label><small>اسم مجلد الملفات</small></div>
+            <input type="text" class="setting-input" id="setBucket" placeholder="media-content">
+          </div>
+          <button class="btn-save-setting" onclick="saveSupabaseSettings()">حفظ الإعدادات</button>
+        </div>
+
+        <div class="settings-group">
+          <h4>🌐 إعدادات المنصة</h4>
+          <div class="setting-row">
+            <div><label>اسم المنصة</label><small>يظهر في الهيدر والفوتر</small></div>
+            <input type="text" class="setting-input" id="setSiteName" placeholder="متعة">
+          </div>
+          <div class="setting-row">
+            <div><label>وصف المنصة</label><small>يظهر في الـ Hero</small></div>
+            <input type="text" class="setting-input" id="setSiteDesc" placeholder="اكتشف أجمل المحتوى...">
+          </div>
+          <button class="btn-save-setting" onclick="saveSiteSettings()">حفظ</button>
+        </div>
+
+        <div class="settings-group">
+          <h4 style="color:#FF6B6B">⚠️ منطقة الخطر</h4>
+          <div class="setting-row">
+            <div><label>تسجيل الخروج</label><small>سيعود الموقع للوضع العادي</small></div>
+            <button class="btn-danger" onclick="doLogout()">خروج</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ===== STATE =====
+// ✅ بيانات مدمجة — لا تحتاج أي إعداد
+const _CFG = {
+  url: 'https://dwehamdptwrajdodtmke.supabase.co',
+  key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3ZWhhbWRwdHdyYWpkb2R0bWtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMjE0ODQsImV4cCI6MjA5NTg5NzQ4NH0.kw0wccZOp_dUMsbtfaU3Yzngi3NRZso4gtsY5RCvoB8',
+  bucket: 'media-content',
+  pass: 'Aya09031996@',
+  siteName: '',
+  siteDesc: ''
+};
+
+let sbClient = null;
+let BUCKET = 'media-content';
+let mediaItems = [];
+let currentFilter = 'all';
+let currentLang = 'ar';
+let isLoggedIn = false;
+
+// ===== BOOT =====
+window.addEventListener('DOMContentLoaded', () => {
+  // دمج أي تعديلات من الإعدادات مع البيانات الأساسية
+  const saved = getSaved();
+  const cfg = Object.assign({}, _CFG, saved);
+  boot(cfg);
+});
+
+function getSaved() {
+  try { return JSON.parse(localStorage.getItem('m3_overrides') || '{}'); } catch { return {}; }
+}
+function getCfg() {
+  return Object.assign({}, _CFG, getSaved());
+}
+function saveCfg(updates) {
+  const saved = getSaved();
+  Object.assign(saved, updates);
+  localStorage.setItem('m3_overrides', JSON.stringify(saved));
+}
+
+function boot(cfg) {
+  BUCKET = cfg.bucket || 'media-content';
+  try {
+    sbClient = window.supabase.createClient(cfg.url, cfg.key);
+  } catch(e) { showNotif('❌ خطأ في Supabase'); return; }
+
+  // Apply site settings
+  if (cfg.siteName) applyName(cfg.siteName);
+  if (cfg.siteDesc) document.getElementById('heroDesc').textContent = cfg.siteDesc;
+
+  // Load settings inputs
+  document.getElementById('setUrl').value = cfg.url || '';
+  document.getElementById('setKey').value = cfg.key || '';
+  document.getElementById('setBucket').value = cfg.bucket || 'media-content';
+  document.getElementById('setSiteName').value = cfg.siteName || '';
+  document.getElementById('setSiteDesc').value = cfg.siteDesc || '';
+
+  showLoader();
+  loadMedia();
+
+  // drag drop
+  const zone = document.querySelector('.upload-zone');
+  if (zone) {
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.style.borderColor='var(--gold)'; });
+    zone.addEventListener('dragleave', () => zone.style.borderColor='');
+    zone.addEventListener('drop', e => { e.preventDefault(); zone.style.borderColor=''; if(e.dataTransfer.files.length) handleUpload(e.dataTransfer.files); });
+  }
+}
+
+function showLoader() {
+  const l = document.getElementById('loader');
+  l.classList.remove('gone');
+  setTimeout(() => l.classList.add('gone'), 1600);
+}
+
+// ===== FIRST RUN =====
+function doFirstRun() {
+  const url = document.getElementById('frUrl').value.trim();
+  const key = document.getElementById('frKey').value.trim();
+  const bucket = document.getElementById('frBucket').value.trim() || 'media-content';
+  const pass = document.getElementById('frPass').value;
+  const err = document.getElementById('frErr');
+
+  if (!url || !key || !pass) { err.textContent='يرجى تعبئة جميع الحقول'; return; }
+  if (!url.startsWith('https://')) { err.textContent='URL يجب أن يبدأ بـ https://'; return; }
+
+  const cfg = { url, key, bucket, pass };
+  saveCfg(cfg);
+  document.getElementById('firstRun').classList.add('gone');
+  boot(cfg);
+  showNotif('✦ تم الإعداد بنجاح! مرحباً في متعة');
+}
+
+// ===== LOAD =====
+async function loadMedia() {
+  try {
+    const { data, error } = await sbClient.from('media').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    mediaItems = data || [];
+    renderGrid();
+    updateStats();
+  } catch(e) {
+    document.getElementById('mediaGrid').innerHTML = `<div class="empty" style="column-span:all"><div class="empty-icon">⚠️</div><h3>تعذّر الاتصال</h3><p>${e.message}</p></div>`;
+  }
+}
+
+// ===== STATS =====
+function updateStats() {
+  const imgs = mediaItems.filter(m=>m.type==='img').length;
+  const vids = mediaItems.filter(m=>m.type==='video'||m.type==='gif').length;
+  const total = mediaItems.length;
+  ['statTotal','dTotal'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=total;});
+  ['statImgs','dImgs'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=imgs;});
+  ['statVids','dVids'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=vids;});
+}
+
+// ===== GRID =====
+function renderGrid(filter=currentFilter, search='') {
+  const grid = document.getElementById('mediaGrid');
+  let items = mediaItems;
+  if (filter!=='all') items = items.filter(m=>m.type===filter);
+  if (search) items = items.filter(m=>m.name.toLowerCase().includes(search.toLowerCase()));
+
+  if (items.length===0) {
+    grid.innerHTML=`<div class="empty" style="column-span:all"><div class="empty-icon">🌟</div><h3>${currentLang==='ar'?'لا يوجد محتوى بعد':'No content yet'}</h3><p>${currentLang==='ar'?'سيظهر المحتوى هنا بعد النشر':'Content will appear here after publishing'}</p></div>`;
+    return;
+  }
+
+  grid.innerHTML = items.map(item => {
+    const badge = item.type==='gif'?'<span class="card-type-badge gif">GIF</span>':item.type==='video'?'<span class="card-type-badge video">VIDEO</span>':'<span class="card-type-badge img">IMG</span>';
+    const play = item.type==='video'?'<div class="play-icon">▶</div>':'';
+    const media = item.type==='video'
+      ? `<video class="card-media" src="${item.url}" muted loop playsinline preload="metadata" style="height:200px"></video>`
+      : `<img class="card-media" src="${item.url}" alt="${item.name}" loading="lazy">`;
+    return `<div class="card" onclick="openLightbox('${item.id}')">${media}${badge}${play}
+      <div class="card-overlay">
+        <div class="card-actions"><button class="card-btn" onclick="event.stopPropagation();dlItem('${item.id}')">⬇</button></div>
+        <div class="card-title-overlay">${item.name}</div>
+      </div></div>`;
+  }).join('');
+
+  grid.querySelectorAll('.card video').forEach(v=>{
+    v.closest('.card').addEventListener('mouseenter',()=>v.play().catch(()=>{}));
+    v.closest('.card').addEventListener('mouseleave',()=>{v.pause();v.currentTime=0;});
+  });
+}
+
+function renderDashGrid() {
+  const g = document.getElementById('dashGrid');
+  if (!mediaItems.length) { g.innerHTML='<p style="color:var(--gray);font-size:.85rem;">لا يوجد محتوى</p>'; return; }
+  g.innerHTML = mediaItems.map(item=>`
+    <div class="mcard">
+      ${item.type==='video'?`<video src="${item.url}" style="width:100%;height:110px;object-fit:cover;" muted></video>`:`<img src="${item.url}" alt="${item.name}">`}
+      <div class="mcard-foot">
+        <span class="mcard-name">${item.name}</span>
+        <button class="mcard-del" onclick="deleteItem('${item.id}')">🗑</button>
+      </div>
+    </div>`).join('');
+}
+
+// ===== FILTER/SEARCH =====
+function setFilter(f,el) {
+  currentFilter=f;
+  document.querySelectorAll('.filter-btn,nav a').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll(`[data-filter="${f}"]`).forEach(b=>b.classList.add('active'));
+  renderGrid(f, document.getElementById('searchInput').value);
+}
+function searchMedia(q) { renderGrid(currentFilter,q); }
+
+// ===== LIGHTBOX =====
+function openLightbox(id) {
+  const item = mediaItems.find(m=>m.id===id); if(!item) return;
+  const content = document.getElementById('lightboxContent');
+  content.innerHTML = item.type==='video'
+    ? `<video src="${item.url}" controls autoplay style="max-width:min(90vw,1000px);max-height:85vh;border-radius:12px;"></video>`
+    : `<img src="${item.url}" alt="${item.name}">`;
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.getElementById('lightboxContent').innerHTML='';
+}
+
+// ===== ADMIN FLOW =====
+function openAdminFlow(e) {
+  e.preventDefault();
+  if (isLoggedIn) { openDashboard(); return; }
+  document.getElementById('loginModal').classList.add('open');
+  setTimeout(()=>document.getElementById('loginPass').focus(),100);
+}
+function closeLogin() { document.getElementById('loginModal').classList.remove('open'); document.getElementById('loginErr').textContent=''; }
+
+function doLogin() {
+  const cfg = getCfg();
+  const pass = document.getElementById('loginPass').value;
+  if (cfg && pass === cfg.pass) {
+    isLoggedIn=true; closeLogin(); openDashboard();
+    showNotif('✦ مرحباً بك');
+  } else {
+    document.getElementById('loginErr').textContent='كلمة المرور غير صحيحة';
+    document.getElementById('loginPass').style.borderColor='#FF6B6B';
+    setTimeout(()=>document.getElementById('loginPass').style.borderColor='',2000);
+  }
+}
+
+function openDashboard() {
+  document.getElementById('dashboard').classList.add('open');
+  renderDashGrid(); updateStats();
+}
+function closeDashboard() {
+  document.getElementById('dashboard').classList.remove('open');
+  document.getElementById('loginPass').value='';
+}
+function goHome() { closeDashboard(); }
+
+function doLogout() {
+  isLoggedIn=false; closeDashboard();
+  showNotif('تم تسجيل الخروج');
+}
+
+// ===== TABS =====
+function switchTab(name, el) {
+  ['tabUpload','tabManage','tabSettings'].forEach(id=>{
+    document.getElementById(id).style.display='none';
+  });
+  document.getElementById('tab'+name.charAt(0).toUpperCase()+name.slice(1)).style.display='block';
+  document.querySelectorAll('.dash-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  if (name==='manage') renderDashGrid();
+}
+
+// ===== UPLOAD =====
+async function handleUpload(files) {
+  if (!sbClient) { showNotif('❌ Supabase غير متصل'); return; }
+  const progList = document.getElementById('progList');
+  progList.innerHTML='';
+
+  for (const file of Array.from(files)) {
+    const name = file.name.replace(/\.[^/.]+$/,'');
+    let type='img';
+    if (file.type.startsWith('video/')) type='video';
+    else if (file.name.toLowerCase().endsWith('.gif')||file.type==='image/gif') type='gif';
+
+    const pid='p_'+Date.now()+Math.random().toString(36).substr(2,4);
+    progList.innerHTML+=`<div class="prog-item" id="${pid}">
+      <div class="prog-label"><span>${file.name}</span><span id="${pid}p">0%</span></div>
+      <div class="prog-bg"><div class="prog-fill" id="${pid}b" style="width:0%"></div></div>
+    </div>`;
+
+    try {
+      const ext=file.name.split('.').pop();
+      const path=`${Date.now()}_${Math.random().toString(36).substr(2,6)}.${ext}`;
+
+      let prog=0;
+      const iv=setInterval(()=>{
+        prog=Math.min(prog+12,85);
+        const b=document.getElementById(pid+'b'); const p=document.getElementById(pid+'p');
+        if(b) b.style.width=prog+'%'; if(p) p.textContent=prog+'%';
+      },200);
+
+      const { error:se } = await sbClient.storage.from(BUCKET).upload(path, file, { contentType:file.type });
+      clearInterval(iv);
+      if (se) throw se;
+
+      const { data:ud } = sbClient.storage.from(BUCKET).getPublicUrl(path);
+      const { data:row, error:de } = await sbClient.from('media').insert([{ name, type, url:ud.publicUrl }]).select().single();
+      if (de) throw de;
+
+      const b=document.getElementById(pid+'b'); const p=document.getElementById(pid+'p');
+      if(b){b.style.width='100%';b.style.background='#4CAF50';} if(p) p.textContent='✓';
+      mediaItems.unshift(row);
+
+    } catch(err) {
+      const b=document.getElementById(pid+'b'); const p=document.getElementById(pid+'p');
+      if(b){b.style.width='100%';b.style.background='#FF6B6B';} if(p) p.textContent='✕';
+      showNotif('❌ '+err.message);
+    }
+  }
+
+  setTimeout(()=>progList.innerHTML='',3000);
+  renderGrid(); updateStats();
+  showNotif(`✦ تم رفع ${files.length} ملف`);
+}
+
+// ===== DELETE =====
+async function deleteItem(id) {
+  if (!confirm('حذف هذا المحتوى؟')) return;
+  const item = mediaItems.find(m=>m.id===id); if(!item) return;
+  try {
+    const url=new URL(item.url);
+    const parts=url.pathname.split(`/object/public/${BUCKET}/`);
+    if(parts.length>1) await sbClient.storage.from(BUCKET).remove([parts[1]]);
+    const {error}=await sbClient.from('media').delete().eq('id',id);
+    if(error) throw error;
+    mediaItems=mediaItems.filter(m=>m.id!==id);
+    renderDashGrid(); renderGrid(); updateStats();
+    showNotif('🗑 تم الحذف');
+  } catch(e){ showNotif('❌ '+e.message); }
+}
+
+// ===== DOWNLOAD =====
+function dlItem(id) {
+  const item=mediaItems.find(m=>m.id===id); if(!item) return;
+  const a=document.createElement('a'); a.href=item.url; a.download=item.name; a.target='_blank'; a.click();
+}
+
+// ===== SETTINGS =====
+function changePass() {
+  const np=document.getElementById('newPass').value;
+  const cp=document.getElementById('confirmPass').value;
+  if(!np){showNotif('❌ أدخل كلمة المرور الجديدة');return;}
+  if(np!==cp){showNotif('❌ كلمتا المرور غير متطابقتين');return;}
+  saveCfg({pass:np});
+  document.getElementById('newPass').value=''; document.getElementById('confirmPass').value='';
+  showNotif('✦ تم تغيير كلمة المرور');
+}
+
+function saveSupabaseSettings() {
+  const url=document.getElementById('setUrl').value.trim();
+  const key=document.getElementById('setKey').value.trim();
+  const bucket=document.getElementById('setBucket').value.trim()||'media-content';
+  if(!url||!key){showNotif('❌ يرجى تعبئة URL والـ Key');return;}
+  saveCfg({url:url, key:key, bucket:bucket}); BUCKET=bucket;
+  try { sbClient=window.supabase.createClient(url,key); } catch(e){}
+  loadMedia();
+  showNotif('✦ تم حفظ إعدادات Supabase');
+}
+
+function saveSiteSettings() {
+  const name=document.getElementById('setSiteName').value.trim();
+  const desc=document.getElementById('setSiteDesc').value.trim();
+  if(name) applyName(name);
+  if(desc) document.getElementById('heroDesc').textContent=desc;
+  saveCfg({siteName:name, siteDesc:desc});
+  showNotif('✦ تم حفظ إعدادات المنصة');
+}
+
+function applyName(name) {
+  document.querySelectorAll('.logo-text').forEach(el=>el.textContent=name);
+  document.querySelectorAll('.ll').forEach(el=>el.textContent=name);
+  document.title=name+' | Platform';
+}
+
+// ===== LANG =====
+const T={ heroDesc:{ar:'اكتشف مجموعة مختارة من أجمل الصور والمقاطع المبهجة — كل ما يمنحك متعة حقيقية',en:'Discover a curated collection of beautiful images and delightful clips — everything that brings you real joy'} };
+function toggleLang() {
+  currentLang=currentLang==='ar'?'en':'ar';
+  document.documentElement.lang=currentLang;
+  document.documentElement.dir=currentLang==='ar'?'rtl':'ltr';
+  const cfg=getCfg();
+  if(!cfg?.siteDesc) document.getElementById('heroDesc').textContent=T.heroDesc[currentLang];
+  renderGrid();
+}
+
+// ===== NOTIF =====
+function showNotif(msg) {
+  const n=document.getElementById('notif'); n.textContent=msg; n.style.display='block';
+  setTimeout(()=>n.style.display='none',2800);
+}
+</script>
+</body>
+</html>
