@@ -546,12 +546,56 @@ function doFirstRun() {
   showNotif('✦ تم الإعداد بنجاح! مرحباً في متعة');
 }
 
+// ===== HELPERS: Direct REST (bypasses schema-cache) =====
+function getCfgNow() { return Object.assign({}, _CFG, getSaved()); }
+
+async function dbSelect(orderCol='created_at') {
+  const cfg = getCfgNow();
+  const res = await fetch(`${cfg.url}/rest/v1/media?select=*&order=${orderCol}.desc`, {
+    headers: {
+      'apikey': cfg.key,
+      'Authorization': `Bearer ${cfg.key}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  if (!res.ok) { const t=await res.text(); throw new Error(t); }
+  return res.json();
+}
+
+async function dbInsert(row) {
+  const cfg = getCfgNow();
+  const res = await fetch(`${cfg.url}/rest/v1/media`, {
+    method: 'POST',
+    headers: {
+      'apikey': cfg.key,
+      'Authorization': `Bearer ${cfg.key}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation'
+    },
+    body: JSON.stringify(row)
+  });
+  if (!res.ok) { const t=await res.text(); throw new Error(t); }
+  const arr = await res.json();
+  return arr[0];
+}
+
+async function dbDelete(id) {
+  const cfg = getCfgNow();
+  const res = await fetch(`${cfg.url}/rest/v1/media?id=eq.${id}`, {
+    method: 'DELETE',
+    headers: {
+      'apikey': cfg.key,
+      'Authorization': `Bearer ${cfg.key}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  if (!res.ok) { const t=await res.text(); throw new Error(t); }
+}
+
 // ===== LOAD =====
 async function loadMedia() {
   try {
-    const { data, error } = await sbClient.from('media').select('*').order('created_at', { ascending: false });
-    if (error) throw error;
-    mediaItems = data || [];
+    mediaItems = await dbSelect();
     renderGrid();
     updateStats();
   } catch(e) {
@@ -721,9 +765,9 @@ async function handleUpload(files) {
       clearInterval(iv);
       if (se) throw se;
 
-      const { data:ud } = sbClient.storage.from(BUCKET).getPublicUrl(path);
-      const { data:row, error:de } = await sbClient.from('media').insert([{ name, type, url:ud.publicUrl }]).select().single();
-      if (de) throw de;
+      const cfg2 = getCfgNow();
+      const publicUrl = `${cfg2.url}/storage/v1/object/public/${BUCKET}/${path}`;
+      const row = await dbInsert({ name, type, url: publicUrl });
 
       const b=document.getElementById(pid+'b'); const p=document.getElementById(pid+'p');
       if(b){b.style.width='100%';b.style.background='#4CAF50';} if(p) p.textContent='✓';
@@ -749,8 +793,7 @@ async function deleteItem(id) {
     const url=new URL(item.url);
     const parts=url.pathname.split(`/object/public/${BUCKET}/`);
     if(parts.length>1) await sbClient.storage.from(BUCKET).remove([parts[1]]);
-    const {error}=await sbClient.from('media').delete().eq('id',id);
-    if(error) throw error;
+    await dbDelete(id);
     mediaItems=mediaItems.filter(m=>m.id!==id);
     await loadMedia();
     renderDashGrid();
